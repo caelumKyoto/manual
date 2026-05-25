@@ -281,8 +281,12 @@ tr:last-child td{border-bottom:none}
     <div class="f"><label>メールアドレス</label><input type="email" id="lem" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="f"><label>パスワード</label><input type="password" id="lpw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="err" id="lerr">メールアドレスまたはパスワードが違います</div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#888;margin:.6rem 0;cursor:pointer;-webkit-user-select:none;user-select:none">
+      <input type="checkbox" id="l-remember" style="accent-color:#F0779A;width:14px;height:14px;cursor:pointer;-webkit-user-select:none;user-select:none">
+      ログイン情報を記憶する
+    </label>
     <button class="btn-login" onclick="doLogin()">ログイン</button>
-    <div class="lhint"><strong>デモ：</strong><br>admin@caelum.jp / admin123 → 管理者<br>maker@caelum.jp / maker123 → 製造店<br>shop@caelum.jp / shop123 → 販売店<br>hikarie@caelum.jp / hikarie123 → ヒカリエ</div>
+
   </div>
 </div>
 
@@ -496,7 +500,11 @@ tr:last-child td{border-bottom:none}
     <div class="mbod">
       <div class="mf"><label>名前</label><input type="text" id="un" placeholder="山田 花子"></div>
       <div class="mf"><label>メールアドレス</label><input type="text" id="ue" placeholder="yamada@example.com"></div>
-      <div class="mf" id="upw-wrap"><label>パスワード</label><input type="text" id="up" placeholder="初期パスワード"></div>
+      <div class="mf" id="upw-wrap">
+        <label id="upw-label">パスワード</label>
+        <input type="text" id="up" placeholder="初期パスワード">
+        <div id="upw-hint" style="font-size:11px;color:#aaa;margin-top:3px;display:none">空欄のままにすると変更されません</div>
+      </div>
       <div class="mf">
         <label>所属店舗</label>
         <select id="u-store" onchange="applyStorePreset()">
@@ -741,6 +749,17 @@ document.addEventListener('visibilitychange',()=>{
 
 // ===== INIT =====
 window.onload=async()=>{
+  // 記憶されたログイン情報を自動入力
+  try{
+    if(localStorage.getItem('caelum_remember')==='1'){
+      const savedEmail=localStorage.getItem('caelum_saved_email');
+      const savedPw=localStorage.getItem('caelum_saved_pw');
+      if(savedEmail)document.getElementById('lem').value=savedEmail;
+      if(savedPw)document.getElementById('lpw').value=savedPw;
+      const cb=document.getElementById('l-remember');
+      if(cb)cb.checked=true;
+    }
+  }catch(e){}
   lsLoad();
   await migratePasswords();
   buildPalettes();
@@ -758,10 +777,21 @@ window.addEventListener('beforeunload',stopLockHeartbeat);;
 // ===== AUTH =====
 async function doLogin(){
   const em=document.getElementById('lem').value.trim(),pw=document.getElementById('lpw').value;
+  const remember=document.getElementById('l-remember')?.checked||false;
   const candidate=users.find(x=>x.email===em);
   if(!candidate){document.getElementById('lerr').style.display='block';return;}
   const ok=await verifyPassword(candidate,pw);
   if(!ok){document.getElementById('lerr').style.display='block';return;}
+  // 記憶する
+  if(remember){
+    localStorage.setItem('caelum_saved_email',em);
+    localStorage.setItem('caelum_saved_pw',pw);
+    localStorage.setItem('caelum_remember','1');
+  } else {
+    localStorage.removeItem('caelum_saved_email');
+    localStorage.removeItem('caelum_saved_pw');
+    localStorage.removeItem('caelum_remember');
+  }
   const u=candidate;
   cu=u;
   document.getElementById('hdr-r').style.display='flex';
@@ -1140,6 +1170,11 @@ function openAddUser(){
   document.getElementById('aum-t').textContent='メンバーを追加';
   document.getElementById('aum-save').textContent='追加する';
   document.getElementById('upw-wrap').style.display='block';
+  document.getElementById('up').placeholder='初期パスワード';
+  const hint=document.getElementById('upw-hint');
+  if(hint)hint.style.display='none';
+  const lbl=document.getElementById('upw-label');
+  if(lbl)lbl.textContent='パスワード';
   ['un','ue','up'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('u-store').value='';
   document.getElementById('u-admin').checked=false;
@@ -1152,7 +1187,14 @@ function openEditUser(uid){
   const u=users.find(x=>x.id===uid);if(!u)return;
   document.getElementById('aum-t').textContent='メンバーを編集';
   document.getElementById('aum-save').textContent='変更を保存';
-  document.getElementById('upw-wrap').style.display='none';
+  // パスワード欄を表示（リセット用）
+  document.getElementById('upw-wrap').style.display='block';
+  document.getElementById('up').value='';
+  document.getElementById('up').placeholder='新しいパスワード（変更しない場合は空欄）';
+  const hint=document.getElementById('upw-hint');
+  if(hint)hint.style.display='block';
+  const lbl=document.getElementById('upw-label');
+  if(lbl)lbl.textContent='パスワードをリセット';
   document.getElementById('un').value=u.name;
   document.getElementById('ue').value=u.email;
   document.getElementById('u-admin').checked=u.isAdmin||false;
@@ -1193,7 +1235,21 @@ function saveUser(){
   if(!n||!e){alert('名前とメールアドレスを入力してください');return;}
   if(editUserId){
     const u=users.find(x=>x.id===editUserId);
-    if(u){u.name=n;u.email=e;u.manuals=sel;u.isAdmin=isA;u.store=store;}
+    if(u){
+      u.name=n;u.email=e;u.manuals=sel;u.isAdmin=isA;u.store=store;
+      // パスワードが入力されていたらリセット
+      const newPw=document.getElementById('up').value;
+      if(newPw){
+        sha256(newPw).then(hash=>{
+          u.pw='[protected]';u.pwHash=hash;u.pwHashed=true;
+          lsSave();
+          // 記憶されたパスワードも更新
+          if(localStorage.getItem('caelum_remember')==='1'&&localStorage.getItem('caelum_saved_email')===e){
+            localStorage.setItem('caelum_saved_pw',newPw);
+          }
+        });
+      }
+    }
     cmo('aum');renderUsers();
   } else {
     const p=document.getElementById('up').value;
