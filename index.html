@@ -769,7 +769,7 @@ window.onload=async()=>{
       if(cb)cb.checked=true;
     }
   }catch(e){}
-  lsLoad();
+  await lsLoad();
   await migratePasswords();
   buildPalettes();
   buildEmojiGrid('emoji-grid','emoji-cats','main');
@@ -1151,8 +1151,6 @@ function execCopy(){
 
 // ===== ADMIN USERS =====
 function renderUsers(){
-  console.log('=== renderUsers called ===');
-  console.log('users:', JSON.stringify(users.map(u=>({id:u.id,name:u.name,email:u.email}))));
   const q=(document.getElementById('u-search').value||'').toLowerCase();
   const col=document.getElementById('u-sort-col').value;
   const dir=document.getElementById('u-sort-dir').value;
@@ -1171,7 +1169,6 @@ function renderUsers(){
     if(col==='store'){va=stores.find(s=>s.id===a.store)?.name||'';vb=stores.find(s=>s.id===b.store)?.name||'';}
     return dir==='asc'?va.localeCompare(vb,'ja'):vb.localeCompare(va,'ja');
   });
-  console.log('list to render:', JSON.stringify(list.map(u=>({id:u.id,name:u.name,email:u.email}))));
   document.getElementById('utbody').innerHTML=list.map(u=>{
     const pills=u.manuals.map(mid=>{const mt=manualTypes.find(m=>m.id===mid);return mt?`<span class="pill" style="background:${mt.color}22;color:${mt.color}">${mt.icon} ${mt.name}</span>`:''}).join('');
     const storeName=stores.find(s=>s.id===u.store)?.name||'–';
@@ -1341,7 +1338,7 @@ function lsSave(){
   }catch(e){console.warn('LocalStorage save failed:',e);}
 }
 
-function lsLoad(){
+async function lsLoad(){
   try{
     const u=localStorage.getItem(LS_KEYS.users);
     const mn=localStorage.getItem(LS_KEYS.manuals);
@@ -1353,13 +1350,10 @@ function lsLoad(){
     if(st) stores=JSON.parse(st);
     // usersがLocalStorageにない場合のみ初期管理者を作成
     if(!u||!users||users.length===0){
-      // 初回アクセス時のみ：仮の管理者アカウントを作成
-      // パスワード「caelum2026」でログインしてすぐ本番アカウントに変更してください
-      sha256('caelum2026').then(hash=>{
-        users=[{id:1,name:'初期管理者',email:'admin@caelum.jp',pw:'[protected]',pwHash:hash,pwHashed:true,store:'',manuals:['staff','maker','sales','tower','hikarie','uzumasa'],isAdmin:true}];
-        nuid=2;
-        lsSave();
-      });
+      const hash=await sha256('caelum2026');
+      users=[{id:1,name:'初期管理者',email:'admin@caelum.jp',pw:'[protected]',pwHash:hash,pwHashed:true,store:'',manuals:['staff','maker','sales','tower','hikarie','uzumasa'],isAdmin:true}];
+      nuid=2;
+      lsSave();
     }
     console.log('LocalStorage loaded. Users:',users.length,'ManualTypes:',manualTypes.length);
   }catch(e){console.warn('LocalStorage load failed:',e);}
@@ -1471,11 +1465,8 @@ async function verifyPassword(user,input){
     const h=await sha256(input);
     return h===user.pwHash;
   }
-  // fallback for un-migrated
   return user.pw===input;
 }
-
-
 // ===== EDIT LOCK & CONFLICT DETECTION =====
 const LOCK_KEY='caelum_edit_lock';
 const LOCK_TTL=30000; // 30 seconds
