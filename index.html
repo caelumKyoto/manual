@@ -499,9 +499,9 @@ tr:last-child td{border-bottom:none}
   <div class="modal">
     <div class="mhd"><div class="mhd-title">メンバーを追加</div><button class="mcls" onclick="cmo('aum-add')">×</button></div>
     <div class="mbod">
-      <div class="mf"><label>名前</label><input type="text" id="add-name" placeholder="山田 花子"></div>
-      <div class="mf"><label>メールアドレス</label><input type="text" id="add-email" placeholder="yamada@example.com"></div>
-      <div class="mf"><label>パスワード（初期値：1234）</label><input type="text" id="add-pw" value="1234" placeholder="1234"></div>
+      <div class="mf"><label>名前</label><input type="text" id="add-name" placeholder="山田 花子" autocomplete="off"></div>
+      <div class="mf"><label>メールアドレス</label><input type="text" id="add-email" placeholder="yamada@example.com" autocomplete="off"></div>
+      <div class="mf"><label>パスワード（初期値：1234）</label><input type="text" id="add-pw" value="1234" placeholder="1234" autocomplete="off"></div>
       <div class="mf"><label>所属店舗</label>
         <select id="add-store" onchange="applyStorePresetAdd()"><option value="">選択してください</option></select>
       </div>
@@ -522,9 +522,9 @@ tr:last-child td{border-bottom:none}
   <div class="modal">
     <div class="mhd"><div class="mhd-title">メンバーを編集</div><button class="mcls" onclick="cmo('aum-edit')">×</button></div>
     <div class="mbod">
-      <div class="mf"><label>名前</label><input type="text" id="edit-name" placeholder="山田 花子"></div>
-      <div class="mf"><label>メールアドレス</label><input type="text" id="edit-email" placeholder="yamada@example.com"></div>
-      <div class="mf"><label>パスワードをリセット（変更しない場合は空欄）</label><input type="text" id="edit-pw" placeholder="新しいパスワード"></div>
+      <div class="mf"><label>名前</label><input type="text" id="edit-name" placeholder="山田 花子" autocomplete="off"></div>
+      <div class="mf"><label>メールアドレス</label><input type="text" id="edit-email" placeholder="yamada@example.com" autocomplete="off"></div>
+      <div class="mf"><label>パスワードをリセット（変更しない場合は空欄）</label><input type="text" id="edit-pw" placeholder="新しいパスワード" autocomplete="off"></div>
       <div class="mf"><label>所属店舗</label>
         <select id="edit-store"><option value="">選択してください</option></select>
       </div>
@@ -1681,13 +1681,16 @@ function buildStoreOptions(selectId, selectedVal){
 
 // ── 追加モーダルを開く ──
 function openAddUser(){
-  document.getElementById('add-name').value='';
-  document.getElementById('add-email').value='';
-  document.getElementById('add-pw').value='1234';
-  document.getElementById('add-admin').checked=false;
-  buildStoreOptions('add-store','');
-  buildManualCheckboxes('add-pcb',[]);
   document.getElementById('aum-add').classList.add('open');
+  // オートフィル対策：モーダル表示後に少し遅らせてクリア
+  setTimeout(()=>{
+    document.getElementById('add-name').value='';
+    document.getElementById('add-email').value='';
+    document.getElementById('add-pw').value='1234';
+    document.getElementById('add-admin').checked=false;
+    buildStoreOptions('add-store','');
+    buildManualCheckboxes('add-pcb',[]);
+  },100);
 }
 
 // 追加モーダルの店舗プリセット
