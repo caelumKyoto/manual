@@ -1006,7 +1006,7 @@ function tdDrop(e,to,k){
   e.preventDefault();document.querySelectorAll('.toc-item').forEach(el=>el.classList.remove('drag-over'));
   if(tdI===null||tdI===to)return;
   const secs=manuals[k].sections;secs.splice(to,0,secs.splice(tdI,1)[0]);
-  tdI=null;renderManual(k);
+  tdI=null;lsSave();renderManual(k);
 }
 
 // ===== SECTION CRUD =====
@@ -1124,6 +1124,7 @@ function saveSec(){
     if(existing){existing.src=src;existing.cap=cap;existing.type=mtype;}
     else eT.media.push({src,cap,afterIdx,type:mtype});
   }
+  lsSave();
   cmo('esm');renderManual(eMK);
 }
 
@@ -1182,10 +1183,15 @@ function renderUsers(){
   }).join('');
 }
 function removeUser(id){
-  id=parseInt(id)||id;
-  if(cu&&cu.id===id){alert('自分自身は削除できません');return;}
-  if(!confirm('このユーザーを削除しますか？'))return;
-  users=users.filter(u=>u.id!==id);renderUsers();
+  id=parseInt(id);
+  const target=users.find(u=>u.id===id);
+  if(!target){alert('ユーザーが見つかりません');return;}
+  // メールアドレスで自分自身かどうか判定（IDの型ズレを防ぐ）
+  if(cu&&target.email===cu.email){alert('自分自身は削除できません');return;}
+  if(!confirm(`「${target.name}」を削除しますか？`))return;
+  users=users.filter(u=>u.id!==id);
+  lsSave();
+  renderUsers();
 }
 
 // ===== MANUAL TYPES =====
