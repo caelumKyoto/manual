@@ -731,7 +731,7 @@ let nuid=100,cu=null,cmk=null;  // 100からスタートしてデモIDと衝突�
 let eT=null,eMK=null,eImg=null,eVid=null,eImgDataUrl=null,eVidDataUrl=null;
 let eIC='#F0779A',eNC='pink',iSrc='upload';
 let cpSecId=null,cpMK=null;
-let editUserId=null;
+let editUserId=null,editUserEmail=null;
 
 // ===== SCREENSHOT PROTECTION =====
 document.addEventListener('keydown',e=>{
@@ -1178,18 +1178,17 @@ function renderUsers(){
       <td style="color:#888;font-size:11px">${u.email}</td>
       <td><span style="font-size:12px">${storeName}</span></td>
       <td><div style="display:flex;flex-wrap:wrap;gap:2px">${pills||'<span style="color:#bbb;font-size:11px">なし</span>'}</div></td>
-      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap"><button class="btn-e" onclick="openEditUser(${u.id})">編集</button><button class="btn-d" onclick="removeUser(${u.id})">削除</button></td>
+      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap"><button class="btn-e" onclick="openEditUser('${u.email}')">編集</button><button class="btn-d" onclick="removeUser('${u.email}')">削除</button></td>
     </tr>`;
   }).join('');
 }
-function removeUser(id){
-  id=parseInt(id);
-  const target=users.find(u=>u.id===id);
+function removeUser(emailOrId){
+  // メールアドレスで検索（IDより確実）
+  const target=users.find(u=>u.email===emailOrId)||users.find(u=>u.id===parseInt(emailOrId));
   if(!target){alert('ユーザーが見つかりません');return;}
-  // メールアドレスで自分自身かどうか判定（IDの型ズレを防ぐ）
   if(cu&&target.email===cu.email){alert('自分自身は削除できません');return;}
   if(!confirm(`「${target.name}」を削除しますか？`))return;
-  users=users.filter(u=>u.id!==id);
+  users=users.filter(u=>u.email!==target.email);
   lsSave();
   renderUsers();
 }
@@ -1721,11 +1720,12 @@ function doAddUser(){
 }
 
 // ── 編集モーダルを開く ──
-function openEditUser(uid){
-  uid=typeof uid==='string'?parseInt(uid):uid;
-  const u=users.find(x=>x.id===uid);
+function openEditUser(emailOrId){
+  // メールアドレスで検索（IDより確実）
+  const u=users.find(x=>x.email===emailOrId)||users.find(x=>x.id===emailOrId||x.id===parseInt(emailOrId));
   if(!u){alert('ユーザーが見つかりません');return;}
-  editUserId=uid;
+  editUserId=u.id;
+  editUserEmail=u.email;  // メールアドレスでも保持（IDの型ズレ対策）
   document.getElementById('edit-name').value=u.name;
   document.getElementById('edit-email').value=u.email;
   document.getElementById('edit-pw').value='';
@@ -1737,7 +1737,8 @@ function openEditUser(uid){
 
 // メンバーを編集する
 function doEditUser(){
-  const u=users.find(x=>x.id===editUserId);
+  // editUserId（ID）またはeditUserEmail（メール）で検索
+  const u=users.find(x=>x.email===editUserEmail)||users.find(x=>x.id===editUserId);
   if(!u){alert('ユーザーが見つかりません');cmo('aum-edit');return;}
   u.name=document.getElementById('edit-name').value.trim()||u.name;
   u.email=document.getElementById('edit-email').value.trim()||u.email;
