@@ -1151,6 +1151,8 @@ function execCopy(){
 
 // ===== ADMIN USERS =====
 function renderUsers(){
+  console.log('=== renderUsers called ===');
+  console.log('users:', JSON.stringify(users.map(u=>({id:u.id,name:u.name,email:u.email}))));
   const q=(document.getElementById('u-search').value||'').toLowerCase();
   const col=document.getElementById('u-sort-col').value;
   const dir=document.getElementById('u-sort-dir').value;
@@ -1169,6 +1171,7 @@ function renderUsers(){
     if(col==='store'){va=stores.find(s=>s.id===a.store)?.name||'';vb=stores.find(s=>s.id===b.store)?.name||'';}
     return dir==='asc'?va.localeCompare(vb,'ja'):vb.localeCompare(va,'ja');
   });
+  console.log('list to render:', JSON.stringify(list.map(u=>({id:u.id,name:u.name,email:u.email}))));
   document.getElementById('utbody').innerHTML=list.map(u=>{
     const pills=u.manuals.map(mid=>{const mt=manualTypes.find(m=>m.id===mid);return mt?`<span class="pill" style="background:${mt.color}22;color:${mt.color}">${mt.icon} ${mt.name}</span>`:''}).join('');
     const storeName=stores.find(s=>s.id===u.store)?.name||'–';
