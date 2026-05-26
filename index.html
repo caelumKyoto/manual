@@ -285,7 +285,7 @@ tr:last-child td{border-bottom:none}
       <input type="checkbox" id="l-remember" style="accent-color:#F0779A;width:14px;height:14px;cursor:pointer;-webkit-user-select:none;user-select:none">
       ログイン情報を記憶する
     </label>
-    <button class="btn-login" onclick="doLogin()">ログイン</button>
+    <button class="btn-login" id="login-btn">ログイン</button>
 
   </div>
 </div>
@@ -780,6 +780,24 @@ window.onload=async()=>{
   if(!isChrome&&!localStorage.getItem('bwarn_dismissed')){
     document.getElementById('bwarn').classList.add('show');
   }
+  // ログインボタンのイベントリスナー（onclick属性より確実）
+  const loginBtn=document.getElementById('login-btn');
+  if(loginBtn){
+    loginBtn.addEventListener('click',function(e){
+      e.preventDefault();
+      doLogin();
+    });
+  }
+  // Enterキーでもログイン
+  ['lem','lpw'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.removeAttribute('onkeydown');
+      el.addEventListener('keydown',function(e){
+        if(e.key==='Enter'){e.preventDefault();doLogin();}
+      });
+    }
+  });
 };
 window.addEventListener('beforeunload',stopLockHeartbeat);;
 
@@ -787,6 +805,7 @@ window.addEventListener('beforeunload',stopLockHeartbeat);;
 async function doLogin(){
   const em=document.getElementById('lem').value.trim(),pw=document.getElementById('lpw').value;
   const remember=document.getElementById('l-remember')?.checked||false;
+  console.log('[LOGIN] called. email:',em,'users count:',users.length);
   if(users.length===0){
     document.getElementById('lerr').textContent='メンバーが登録されていません。管理者にお問い合わせください。';
     document.getElementById('lerr').style.display='block';return;
@@ -1356,6 +1375,7 @@ async function lsLoad(){
       lsSave();
     }
     console.log('LocalStorage loaded. Users:',users.length,'ManualTypes:',manualTypes.length);
+    console.log('[LSLOAD] user details:', JSON.stringify(users.map(u=>({id:u.id,email:u.email,pwHashed:u.pwHashed,hasPwHash:!!u.pwHash}))));
   }catch(e){console.warn('LocalStorage load failed:',e);}
 }
 
